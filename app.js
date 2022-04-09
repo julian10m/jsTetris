@@ -1,4 +1,4 @@
-const getTetrominoes = function () {
+const getTetrominoes = function (width) {
   const lTetromino = [
     [1, width + 1, width * 2 + 1, 2],
     [width, width + 1, width + 2, width * 2 + 2],
@@ -43,39 +43,13 @@ const getRandomCharacteristics = () => [
   Math.floor(Math.random() * tetrominoes[0].length),
 ];
 
-const getTetromino = (shapeIdx, rotationIdx) =>
+const getTetromino = (tetrominoes, shapeIdx, rotationIdx) =>
   tetrominoes[shapeIdx][rotationIdx];
-
-// const freeze = function () {
-//   if (
-//     currentTetromino.some(
-//       (index) =>
-//         currentPosition + index + width >= squares.length ||
-//         squares[currentPosition + index + width].classList.contains("taken")
-//     )
-//   ) {
-//     console.log("Freezeing now");
-//     currentTetromino.forEach((index) =>
-//       squares[currentPosition + index].classList.add("taken")
-//     );
-//     if (currentTetromino.some((index) => currentPosition + index < width)) {
-//       console.log("turning off timer");
-//       isFinished = true;
-//       clearInterval(timerId);
-//       timerId = null;
-//     } else {
-//       [currentShape, currentRotation] = getRandomCharacteristics();
-//       currentTetromino = getTetromino(currentShape, currentRotation);
-//       currentPosition = 4 + getStartingPosition(...currentTetromino);
-//       draw();
-//     }
-//   }
-// };
 
 const shouldAlreadyBeVisible = (index) => currentPosition + index >= 0;
 
-const draw = function () {
-  currentTetromino.forEach((index) => {
+const draw = function (tetromino) {
+  tetromino.forEach((index) => {
     if (shouldAlreadyBeVisible(index))
       squares[currentPosition + index].classList.add("tetromino");
   });
@@ -89,11 +63,15 @@ const cannotBeDisplayedAtCurrentPosition = (tetromino) =>
         squares[currentPosition + index].classList.contains("taken"))
   );
 
-const loadAndRenderNewTetromino = function () {
-  [currentShape, currentRotation] = getRandomCharacteristics();
-  currentTetromino = getTetromino(currentShape, currentRotation);
-  currentPosition = 4 + getStartingPosition(...currentTetromino);
-  render(0);
+const createNewTetromino = function (tetrominoes) {
+  const [currentShape, currentRotation] = getRandomCharacteristics();
+  const currentTetromino = getTetromino(
+    tetrominoes,
+    currentShape,
+    currentRotation
+  );
+  const currentPosition = 4 + getStartingPosition(...currentTetromino);
+  return [currentShape, currentRotation, currentTetromino, currentPosition];
 };
 
 const clearTimer = function () {
@@ -109,23 +87,26 @@ const markGrid = function (tetromino) {
 };
 
 const render = function (step) {
-  if (!cannotBeDisplayedAtCurrentPosition(currentTetromino)) draw();
+  if (!cannotBeDisplayedAtCurrentPosition(currentTetromino))
+    draw(currentTetromino);
   else {
     currentPosition -= step;
-    draw();
+    draw(currentTetromino);
     markGrid(currentTetromino);
     if (currentTetromino.some((index) => currentPosition + index < 0)) {
       console.log("turning off timer");
       isFinished = true;
       clearTimer();
     } else {
-      loadAndRenderNewTetromino();
+      [currentShape, currentRotation, currentTetromino, currentPosition] =
+        createNewTetromino(tetrominoes);
+      render(0);
     }
   }
 };
 
-const undraw = function () {
-  currentTetromino.forEach((index) => {
+const undraw = function (tetromino) {
+  tetromino.forEach((index) => {
     if (shouldAlreadyBeVisible(index))
       squares[currentPosition + index].classList.remove("tetromino");
   });
@@ -133,7 +114,7 @@ const undraw = function () {
 
 const move = function (step) {
   //   freeze();
-  undraw();
+  undraw(currentTetromino);
   currentPosition += step;
   render(step);
 };
@@ -199,7 +180,7 @@ const rotate = function () {
       cannotBeDisplayedAtCurrentPosition(nextTetromino)
     )
   ) {
-    undraw();
+    undraw(currentTetromino);
     currentRotation = nextRotation;
     currentTetromino = nextTetromino;
     move(0);
@@ -215,16 +196,34 @@ const applyTransformation = function (e) {
   }
 };
 
+// const displayMiniGrid = function () {
+//   miniGridSquares.forEach((square) => square.classList.remove("tetromino"));
+//   nextTetromino.forEach((index) =>
+//     miniGridSquares[index].classList.add("tetromino")
+//   );
+// };
+
 const grid = document.querySelector(".grid");
-let squares = Array.from(document.querySelectorAll(".grid div"));
+const squares = Array.from(document.querySelectorAll(".grid div"));
+const width = 10;
+
+const miniGridSquares = Array.from(document.querySelectorAll(".mini-grid div"));
+const miniGridWidth = 8;
+let miniGridIndex = 1;
+
 const scoreDisplay = document.querySelector("#score");
 const startBtn = document.querySelector("#start-button");
-const width = 10;
-const tetrominoes = getTetrominoes();
+const tetrominoes = getTetrominoes(width);
 
 let isFinished = false;
-let currentShape, currentRotation, currentTetromino, currentPosition;
-loadAndRenderNewTetromino();
+
+let [currentShape, currentRotation, currentTetromino, currentPosition] =
+  createNewTetromino(tetrominoes);
+render(0);
+
+// let nextTetromino = currentTetromino;
+// console.log(miniGridSquares, nextTetromino);
+// displayMiniGrid();
 let timerId = setInterval(moveDown, 1000);
 document.addEventListener("keydown", applyTransformation);
 
