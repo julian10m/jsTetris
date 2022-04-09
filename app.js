@@ -48,7 +48,7 @@ const getTetromino = (tetrominoes, shapeIdx, rotationIdx) =>
 
 const shouldAlreadyBeVisible = (index) => currentPosition + index >= 0;
 
-const draw = function (tetromino) {
+const draw = function (tetromino, squares) {
   tetromino.forEach((index) => {
     if (shouldAlreadyBeVisible(index))
       squares[currentPosition + index].classList.add("tetromino");
@@ -88,10 +88,10 @@ const markGrid = function (tetromino) {
 
 const render = function (step) {
   if (!cannotBeDisplayedAtCurrentPosition(currentTetromino))
-    draw(currentTetromino);
+    draw(currentTetromino, squares);
   else {
     currentPosition -= step;
-    draw(currentTetromino);
+    draw(currentTetromino, squares);
     markGrid(currentTetromino);
     if (currentTetromino.some((index) => currentPosition + index < 0)) {
       console.log("turning off timer");
@@ -105,7 +105,7 @@ const render = function (step) {
   }
 };
 
-const undraw = function (tetromino) {
+const undraw = function (tetromino, squares) {
   tetromino.forEach((index) => {
     if (shouldAlreadyBeVisible(index))
       squares[currentPosition + index].classList.remove("tetromino");
@@ -113,8 +113,7 @@ const undraw = function (tetromino) {
 };
 
 const move = function (step) {
-  //   freeze();
-  undraw(currentTetromino);
+  undraw(currentTetromino, squares);
   currentPosition += step;
   render(step);
 };
@@ -125,18 +124,15 @@ const moveDown = function () {
 
 const isAtEdge = (tetromino, edgeIdx) =>
   tetromino.some((index) => (currentPosition + index) % width === edgeIdx);
-// const isAtLeftEdge = (tetromino) => isAtEdge(tetromino, 0);
-// const isAtRightEdge = (tetromino) => isAtEdge(tetromino, width - 1);
 
 const hasTetrominoAtSide = (tetromino, deltaSide) =>
-  tetromino.some((index) =>
-    squares[index + currentPosition + deltaSide].classList.contains("taken")
+  tetromino.some(
+    (index) =>
+      shouldAlreadyBeVisible(index) &&
+      squares[index + currentPosition + deltaSide].classList.contains("taken")
   );
-// const hasTetrominoAtLeft = (tetromino) => hasTetrominoAtSide(tetromino, -1);
-// const hasTetrominoAtRight = (tetromino) => hasTetrominoAtSide(tetromino, 1);
 
 const moveSide = function (edgeIdx, deltaSide) {
-  if (currentPosition < 0) return;
   if (
     !isAtEdge(currentTetromino, edgeIdx) &&
     !hasTetrominoAtSide(currentTetromino, deltaSide)
@@ -148,39 +144,17 @@ const moveSide = function (edgeIdx, deltaSide) {
 const moveLeft = () => moveSide(0, -1);
 const moveRight = () => moveSide(width - 1, 1);
 
-// const moveLeft = function () {
-//   if (currentPosition < 0) return;
-//   if (
-//     !isAtLeftEdge(currentTetromino) &&
-//     !hasTetrominoAtLeft(currentTetromino)
-//   ) {
-//     move(-1);
-//   }
-// };
-
-// const moveRight = function () {
-//   if (currentPosition < 0) return;
-//   if (
-//     !isAtRightEdge(currentTetromino) &&
-//     !hasTetrominoAtRight(currentTetromino)
-//   ) {
-//     move(1);
-//   }
-// };
-
 const rotate = function () {
-  //   console.log("rotate");
   let nextRotation = currentRotation + 1;
   if (nextRotation === tetrominoes[currentShape].length) nextRotation = 0;
   const nextTetromino = tetrominoes[currentShape][nextRotation];
   if (
     !(
       (isAtEdge(nextTetromino, 0) && isAtEdge(nextTetromino, width - 1)) ||
-      //   (isAtLeftEdge(nextTetromino) && isAtRightEdge(nextTetromino)) ||
       cannotBeDisplayedAtCurrentPosition(nextTetromino)
     )
   ) {
-    undraw(currentTetromino);
+    undraw(currentTetromino, squares);
     currentRotation = nextRotation;
     currentTetromino = nextTetromino;
     move(0);
@@ -195,13 +169,6 @@ const applyTransformation = function (e) {
     else if (e.keyCode === 40) moveDown();
   }
 };
-
-// const displayMiniGrid = function () {
-//   miniGridSquares.forEach((square) => square.classList.remove("tetromino"));
-//   nextTetromino.forEach((index) =>
-//     miniGridSquares[index].classList.add("tetromino")
-//   );
-// };
 
 const grid = document.querySelector(".grid");
 const squares = Array.from(document.querySelectorAll(".grid div"));
@@ -221,9 +188,6 @@ let [currentShape, currentRotation, currentTetromino, currentPosition] =
   createNewTetromino(tetrominoes);
 render(0);
 
-// let nextTetromino = currentTetromino;
-// console.log(miniGridSquares, nextTetromino);
-// displayMiniGrid();
 let timerId = setInterval(moveDown, 1000);
 document.addEventListener("keydown", applyTransformation);
 
