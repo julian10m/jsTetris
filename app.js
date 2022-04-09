@@ -36,10 +36,10 @@ const getTetrominoes = function (width) {
   return [lTetromino, zTetromino, tTetromino, oTetromino, iTetromino];
 };
 
-const getStartingPosition = (tetromino) =>
+const getStartingPosition = (tetromino, width) =>
   -Math.ceil(Math.max(...tetromino) / width) * width;
 
-const getRandomCharacteristics = () => [
+const getRandomCharacteristics = (tetrominoes) => [
   Math.floor(Math.random() * tetrominoes.length),
   Math.floor(Math.random() * tetrominoes[0].length),
 ];
@@ -54,29 +54,29 @@ const shouldAlreadyBeVisible = (currentPosition, index) =>
 
 const draw = function (currentPosition, tetromino, squares) {
   tetromino.forEach((index) => {
-    if (shouldAlreadyBeVisible(currentPosition, index))
+    shouldAlreadyBeVisible(currentPosition, index) &&
       squares[absoluteIndex(currentPosition, index)].classList.add("tetromino");
   });
 };
 
-const isNotValidPosition = (currentPosition, tetromino) =>
+const isNotValidPosition = (currentPosition, tetromino, squares) =>
   tetromino.some(
     (index) =>
-      shouldAlreadyBeVisible(currentPosition, index) &&
-      (absoluteIndex(currentPosition, index) >= squares.length ||
+      absoluteIndex(currentPosition, index) >= squares.length ||
+      (shouldAlreadyBeVisible(currentPosition, index) &&
         squares[absoluteIndex(currentPosition, index)].classList.contains(
           "taken"
         ))
   );
 
-const createNewTetromino = function (tetrominoes) {
-  const [currentShape, currentRotation] = getRandomCharacteristics();
+const createNewTetromino = function (tetrominoes, width) {
+  const [currentShape, currentRotation] = getRandomCharacteristics(tetrominoes);
   const currentTetromino = getTetromino(
     tetrominoes,
     currentShape,
     currentRotation
   );
-  const currentPosition = getStartingPosition(currentTetromino);
+  const currentPosition = getStartingPosition(currentTetromino, width);
   return [currentShape, currentRotation, currentTetromino, currentPosition];
 };
 
@@ -85,20 +85,20 @@ const clearTimer = function () {
   timerId = null;
 };
 
-const markGrid = function (tetromino) {
+const markGrid = function (currentPosition, tetromino, squares) {
   tetromino.forEach((index) => {
-    if (shouldAlreadyBeVisible(currentPosition, index))
+    shouldAlreadyBeVisible(currentPosition, index) &&
       squares[absoluteIndex(currentPosition, index)].classList.add("taken");
   });
 };
 
 const render = function (step) {
-  if (!isNotValidPosition(currentPosition, currentTetromino))
+  if (!isNotValidPosition(currentPosition, currentTetromino, squares))
     draw(currentPosition, currentTetromino, squares);
   else {
     currentPosition -= step;
     draw(currentPosition, currentTetromino, squares);
-    markGrid(currentTetromino);
+    markGrid(currentPosition, currentTetromino, squares);
     if (
       currentTetromino.some(
         (index) => absoluteIndex(currentPosition, index) < 0
@@ -109,7 +109,7 @@ const render = function (step) {
       clearTimer();
     } else {
       [currentShape, currentRotation, currentTetromino, currentPosition] =
-        createNewTetromino(tetrominoes);
+        createNewTetromino(tetrominoes, width);
       render(0);
     }
   }
@@ -117,7 +117,7 @@ const render = function (step) {
 
 const undraw = function (currentPosition, tetromino, squares) {
   tetromino.forEach((index) => {
-    if (shouldAlreadyBeVisible(currentPosition, index))
+    shouldAlreadyBeVisible(currentPosition, index) &&
       squares[absoluteIndex(currentPosition, index)].classList.remove(
         "tetromino"
       );
@@ -134,9 +134,11 @@ const moveDown = function () {
   move(width);
 };
 
-const isAtEdge = (tetromino, edgeIdx) =>
+const isAtEdge = (tetromino, width, edgeIdx) =>
   tetromino.some(
-    (index) => absoluteIndex(currentPosition, index) % width === edgeIdx
+    (index) =>
+      ((absoluteIndex(currentPosition, index) % width) + width) % width ===
+      edgeIdx
   );
 
 const hasTetrominoAtSide = (tetromino, deltaSide) =>
@@ -150,11 +152,11 @@ const hasTetrominoAtSide = (tetromino, deltaSide) =>
 
 const moveSide = function (edgeIdx, deltaSide) {
   if (
-    !isAtEdge(currentTetromino, edgeIdx) &&
-    !hasTetrominoAtSide(currentTetromino, deltaSide)
-  ) {
-    move(deltaSide);
-  }
+    isAtEdge(currentTetromino, width, edgeIdx) ||
+    hasTetrominoAtSide(currentTetromino, deltaSide)
+  )
+    return;
+  move(deltaSide);
 };
 
 const moveLeft = () => moveSide(0, -1);
@@ -165,8 +167,9 @@ const rotate = function () {
   if (nextRotation === tetrominoes[currentShape].length) nextRotation = 0;
   const nextTetromino = tetrominoes[currentShape][nextRotation];
   if (
-    (isAtEdge(nextTetromino, 0) && isAtEdge(nextTetromino, width - 1)) ||
-    isNotValidPosition(currentPosition, nextTetromino)
+    isNotValidPosition(currentPosition, nextTetromino, squares) ||
+    (isAtEdge(nextTetromino, width, 0) &&
+      isAtEdge(nextTetromino, width, width - 1))
   )
     return;
   undraw(currentPosition, currentTetromino, squares);
@@ -199,7 +202,7 @@ const tetrominoes = getTetrominoes(width);
 let isFinished = false;
 
 let [currentShape, currentRotation, currentTetromino, currentPosition] =
-  createNewTetromino(tetrominoes);
+  createNewTetromino(tetrominoes, width);
 render(0);
 
 let timerId = setInterval(moveDown, 1000);
