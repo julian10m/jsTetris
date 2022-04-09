@@ -36,8 +36,21 @@ const getTetrominoes = function (width) {
   return [lTetromino, zTetromino, tTetromino, oTetromino, iTetromino];
 };
 
-const getStartingPosition = (tetromino, width) =>
-  -Math.ceil(Math.max(...tetromino) / width) * width;
+const randomIntFromInterval = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1) + min);
+
+const getStartingPosition = function (tetromino, width) {
+  let startingPosition = -Math.ceil(Math.max(...tetromino) / width) * width;
+  if (!isAtEdge(startingPosition, tetromino, width, 0)) startingPosition--;
+
+  return (
+    startingPosition +
+    randomIntFromInterval(
+      0,
+      width - Math.max(...tetromino.map((idx) => idx % width)) - 1
+    )
+  );
+};
 
 const getRandomCharacteristics = (tetrominoes) => [
   Math.floor(Math.random() * tetrominoes.length),
@@ -134,7 +147,7 @@ const moveDown = function () {
   move(width);
 };
 
-const isAtEdge = (tetromino, width, edgeIdx) =>
+const isAtEdge = (currentPosition, tetromino, width, edgeIdx) =>
   tetromino.some(
     (index) =>
       ((absoluteIndex(currentPosition, index) % width) + width) % width ===
@@ -152,7 +165,7 @@ const hasTetrominoAtSide = (tetromino, deltaSide) =>
 
 const moveSide = function (edgeIdx, deltaSide) {
   if (
-    isAtEdge(currentTetromino, width, edgeIdx) ||
+    isAtEdge(currentPosition, currentTetromino, width, edgeIdx) ||
     hasTetrominoAtSide(currentTetromino, deltaSide)
   )
     return;
@@ -168,8 +181,8 @@ const rotate = function () {
   const nextTetromino = tetrominoes[currentShape][nextRotation];
   if (
     isNotValidPosition(currentPosition, nextTetromino, squares) ||
-    (isAtEdge(nextTetromino, width, 0) &&
-      isAtEdge(nextTetromino, width, width - 1))
+    (isAtEdge(currentPosition, nextTetromino, width, 0) &&
+      isAtEdge(currentPosition, nextTetromino, width, width - 1))
   )
     return;
   undraw(currentPosition, currentTetromino, squares);
@@ -190,10 +203,6 @@ const applyTransformation = function (e) {
 const grid = document.querySelector(".grid");
 const squares = Array.from(document.querySelectorAll(".grid div"));
 const width = 10;
-
-const miniGridSquares = Array.from(document.querySelectorAll(".mini-grid div"));
-const miniGridWidth = 8;
-let miniGridIndex = 1;
 
 const scoreDisplay = document.querySelector("#score");
 const startBtn = document.querySelector("#start-button");
