@@ -200,24 +200,28 @@ const applyTransformation = function (e) {
   }
 };
 
-const grid = document.querySelector(".grid");
-const squares = Array.from(document.querySelectorAll(".grid div"));
+const numberOfSquares = 200;
 const width = 10;
-
+let isFinished = false;
 const scoreDisplay = document.querySelector("#score");
 const startBtn = document.querySelector("#start-button");
 const tetrominoes = getTetrominoes(width);
+const grid = document.querySelector(".grid");
+const squares = [];
 
-let isFinished = false;
+for (let i = 0; i < numberOfSquares; i++) {
+  let square = document.createElement("div");
+  squares.push(square);
+  grid.insertAdjacentElement("beforeend", square);
+}
 
 let [currentShape, currentRotation, currentTetromino, currentPosition] =
   createNewTetromino(tetrominoes, width);
 render(0);
+let timerId = setInterval(moveDown, 250);
 
-let timerId = setInterval(moveDown, 1000);
 document.addEventListener("keydown", applyTransformation);
-
 startBtn.addEventListener("click", function () {
-  if (!timerId) timerId = setInterval(moveDown, 500);
+  if (!timerId) timerId = setInterval(moveDown, 250);
   else clearTimer();
 });
